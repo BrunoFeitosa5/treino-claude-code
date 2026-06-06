@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minhas Tarefas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --creme:    #f2ede3;
+      --tinta:    #111111;
+      --amarelo:  #f5c400;
+      --vermelho: #e83030;
+      --verde:    #1a9e6a;
+      --cinza:    #c8c0b0;
+      --border:   3px solid var(--tinta);
+      --shadow:   5px 5px 0 var(--tinta);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--creme);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23f2ede3'/%3E%3Ccircle cx='1' cy='1' r='.6' fill='%23d8d0c0' opacity='.4'/%3E%3C/svg%3E");
+      color: var(--tinta);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────── */
+    .wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ── CABEÇALHO ─────────────────────────────── */
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      border-bottom: var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .titulo {
+      font-family: 'Anton', sans-serif;
+      font-size: clamp(2.8rem, 10vw, 5rem);
+      line-height: 1;
+      letter-spacing: -1px;
+      text-transform: uppercase;
+    }
+
+    .titulo span {
+      display: inline-block;
+      background: var(--amarelo);
+      padding: 0 6px;
+      transform: rotate(-1deg);
+    }
+
+    .ano {
+      font-family: 'Anton', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 4px;
+      color: var(--cinza);
+      padding-bottom: 6px;
+    }
+
+    /* ── FORMULÁRIO ────────────────────────────── */
+    .form-adicionar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+
+    .form-adicionar input {
+      flex: 1;
+      border: var(--border);
+      border-right: none;
+      background: white;
+      padding: 0.85rem 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      outline: none;
+      transition: box-shadow .15s;
+    }
+
+    .form-adicionar input:focus {
+      box-shadow: var(--shadow);
+      z-index: 1;
+    }
+
+    .form-adicionar input::placeholder { color: var(--cinza); }
+
+    .btn-adicionar {
+      border: var(--border);
+      background: var(--tinta);
+      color: var(--amarelo);
+      font-family: 'Anton', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 2px;
+      padding: 0.85rem 1.4rem;
+      cursor: pointer;
+      transition: background .15s, color .15s, transform .1s, box-shadow .1s;
+      white-space: nowrap;
+    }
+
+    .btn-adicionar:hover {
+      background: var(--amarelo);
+      color: var(--tinta);
+      box-shadow: var(--shadow);
+      transform: translate(-2px, -2px);
+    }
+
+    .btn-adicionar:active { transform: translate(0,0); box-shadow: none; }
+
+    /* ── FILTROS ────────────────────────────────── */
+    .filtros {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border: var(--border);
+      width: fit-content;
+    }
+
+    .filtro {
+      background: transparent;
+      border: none;
+      border-right: var(--border);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: .5rem 1rem;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .filtro:last-child { border-right: none; }
+    .filtro:hover { background: var(--tinta); color: var(--creme); }
+    .filtro.ativo { background: var(--tinta); color: var(--amarelo); }
+
+    /* ── LISTA ──────────────────────────────────── */
+    #lista-tarefas { display: flex; flex-direction: column; gap: .75rem; }
+
+    .tarefa {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      border: var(--border);
+      background: white;
+      padding: .9rem 1rem;
+      transition: box-shadow .15s, transform .15s;
+      animation: entrar .25s cubic-bezier(.22,1,.36,1);
+    }
+
+    @keyframes entrar {
+      from { opacity: 0; transform: translateX(-20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .tarefa:hover {
+      box-shadow: var(--shadow);
+      transform: translate(-2px, -2px);
+    }
+
+    .tarefa.saindo {
+      animation: sair .2s ease forwards;
+    }
+
+    @keyframes sair {
+      to { opacity: 0; transform: translateX(30px); max-height: 0; padding: 0; margin: 0; border-width: 0; }
+    }
+
+    /* checkbox customizado */
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      border: var(--border);
+      background: var(--creme);
+      flex-shrink: 0;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: background .15s;
+      position: relative;
+    }
+
+    .checkbox::after {
+      content: '';
+      width: 12px;
+      height: 12px;
+      background: var(--amarelo);
+      transform: scale(0);
+      transition: transform .15s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    .tarefa.concluida .checkbox {
+      background: var(--tinta);
+    }
+
+    .tarefa.concluida .checkbox::after {
+      content: '✓';
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--amarelo);
+      background: transparent;
+      transform: scale(1);
+    }
+
+    .tarefa-titulo {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: color .2s;
+    }
+
+    .tarefa.concluida .tarefa-titulo {
+      text-decoration: line-through;
+      color: var(--cinza);
+      font-style: italic;
+    }
+
+    .btn-deletar {
+      background: transparent;
+      border: 2px solid transparent;
+      color: var(--cinza);
+      font-size: 1.1rem;
+      font-weight: 700;
+      width: 32px;
+      height: 32px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: color .15s, border-color .15s, background .15s;
+      line-height: 1;
+    }
+
+    .btn-deletar:hover {
+      color: white;
+      background: var(--vermelho);
+      border-color: var(--tinta);
+    }
+
+    /* ── ESTADO VAZIO ───────────────────────────── */
+    .vazio {
+      text-align: center;
+      padding: 3rem 1rem;
+      display: none;
+    }
+
+    .vazio.visivel { display: block; }
+
+    .vazio-icone {
+      font-size: 3.5rem;
+      display: block;
+      margin-bottom: .75rem;
+      filter: grayscale(1) opacity(.4);
+    }
+
+    .vazio p {
+      font-size: 1rem;
+      color: var(--cinza);
+      font-weight: 500;
+    }
+
+    /* ── RODAPÉ ─────────────────────────────────── */
+    footer {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 2px solid var(--tinta);
+      padding-top: .75rem;
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--cinza);
+    }
+
+    .contador { color: var(--tinta); }
+
+    /* ── TOAST ──────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--vermelho);
+      color: white;
+      font-weight: 700;
+      font-size: .85rem;
+      padding: .7rem 1.2rem;
+      border: var(--border);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+    }
+
+    .toast.visivel { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <header>
+      <h1 class="titulo">Minhas<br><span>Tarefas</span></h1>
+      <div class="ano">2026</div>
+    </header>
+
+    <form class="form-adicionar" id="form-adicionar">
+      <input
+        type="text"
+        id="input-tarefa"
+        placeholder="Nova tarefa..."
+        autocomplete="off"
+        maxlength="200"
+      />
+      <button type="submit" class="btn-adicionar">+ Adicionar</button>
+    </form>
+
+    <div class="filtros" role="group" aria-label="Filtrar tarefas">
+      <button class="filtro ativo" data-filtro="todas">Todas</button>
+      <button class="filtro" data-filtro="pendentes">Pendentes</button>
+      <button class="filtro" data-filtro="concluidas">Concluídas</button>
+    </div>
+
+    <ul id="lista-tarefas" aria-live="polite"></ul>
+
+    <div class="vazio" id="estado-vazio">
+      <span class="vazio-icone">📋</span>
+      <p>Nenhuma tarefa aqui.</p>
+    </div>
+
+    <footer>
+      <span class="contador" id="contador"></span>
+      <span>Lista de Tarefas</span>
+    </footer>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const lista      = document.getElementById('lista-tarefas');
+    const form       = document.getElementById('form-adicionar');
+    const input      = document.getElementById('input-tarefa');
+    const vazio      = document.getElementById('estado-vazio');
+    const contador   = document.getElementById('contador');
+    const toast      = document.getElementById('toast');
+
+    let tarefas  = [];
+    let filtroAtual = 'todas';
+
+    /* ── API ─────────────────────────────────────── */
+    async function api(path, opcoes = {}) {
+      const resp = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opcoes,
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.erro || 'Erro na requisição');
+      }
+      if (resp.status === 204) return null;
+      return resp.json();
+    }
+
+    /* ── TOAST ───────────────────────────────────── */
+    let toastTimer;
+    function mostrarToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('visivel');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('visivel'), 3000);
+    }
+
+    /* ── RENDER ──────────────────────────────────── */
+    function visiveis() {
+      if (filtroAtual === 'pendentes')  return tarefas.filter(t => !t.concluida);
+      if (filtroAtual === 'concluidas') return tarefas.filter(t =>  t.concluida);
+      return tarefas;
+    }
+
+    function atualizarContador() {
+      const pendentes = tarefas.filter(t => !t.concluida).length;
+      contador.textContent = pendentes === 0
+        ? 'Tudo concluído!'
+        : `${pendentes} pendente${pendentes > 1 ? 's' : ''}`;
+    }
+
+    function renderizar() {
+      const itens = visiveis();
+      lista.innerHTML = '';
+
+      itens.forEach(t => {
+        const li = document.createElement('li');
+        li.className = 'tarefa' + (t.concluida ? ' concluida' : '');
+        li.dataset.id = t.id;
+
+        const check = document.createElement('button');
+        check.className = 'checkbox';
+        check.setAttribute('aria-label', t.concluida ? 'Marcar como pendente' : 'Marcar como concluída');
+        check.addEventListener('click', () => alternarTarefa(t.id));
+
+        const titulo = document.createElement('span');
+        titulo.className = 'tarefa-titulo';
+        titulo.textContent = t.titulo;
+
+        const del = document.createElement('button');
+        del.className = 'btn-deletar';
+        del.innerHTML = '&times;';
+        del.setAttribute('aria-label', 'Excluir tarefa');
+        del.addEventListener('click', () => deletarTarefa(t.id, li));
+
+        li.append(check, titulo, del);
+        lista.appendChild(li);
+      });
+
+      vazio.classList.toggle('visivel', itens.length === 0);
+      atualizarContador();
+    }
+
+    /* ── AÇÕES ───────────────────────────────────── */
+    async function carregarTarefas() {
+      try {
+        tarefas = await api('/tarefas');
+        renderizar();
+      } catch (e) {
+        mostrarToast('Erro ao carregar tarefas.');
+      }
+    }
+
+    async function adicionarTarefa(titulo) {
+      try {
+        const nova = await api('/tarefas', {
+          method: 'POST',
+          body: JSON.stringify({ titulo }),
+        });
+        tarefas.push(nova);
+        renderizar();
+      } catch (e) {
+        mostrarToast(e.message);
+      }
+    }
+
+    async function alternarTarefa(id) {
+      const tarefa = tarefas.find(t => t.id === id);
+      if (!tarefa) return;
+      try {
+        const atualizada = await api(`/tarefas/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ concluida: !tarefa.concluida }),
+        });
+        Object.assign(tarefa, atualizada);
+        renderizar();
+      } catch (e) {
+        mostrarToast('Erro ao atualizar tarefa.');
+      }
+    }
+
+    async function deletarTarefa(id, el) {
+      el.classList.add('saindo');
+      await new Promise(r => setTimeout(r, 200));
+      try {
+        await api(`/tarefas/${id}`, { method: 'DELETE' });
+        tarefas = tarefas.filter(t => t.id !== id);
+        renderizar();
+      } catch (e) {
+        el.classList.remove('saindo');
+        mostrarToast('Erro ao excluir tarefa.');
+      }
+    }
+
+    /* ── EVENTOS ─────────────────────────────────── */
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const titulo = input.value.trim();
+      if (!titulo) return;
+      input.value = '';
+      adicionarTarefa(titulo);
+    });
+
+    document.querySelectorAll('.filtro').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelector('.filtro.ativo').classList.remove('ativo');
+        btn.classList.add('ativo');
+        filtroAtual = btn.dataset.filtro;
+        renderizar();
+      });
+    });
+
+    carregarTarefas();
+  </script>
+</body>
+</html>
