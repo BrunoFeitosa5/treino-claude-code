@@ -3,3 +3,6 @@ __pycache__/
 flask.log
 flask.err
 .env
+
+.vercel
+tarefas.json
