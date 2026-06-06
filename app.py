@@ -1,30 +1,39 @@
-import json
 import os
+from contextlib import contextmanager
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 
-ARQUIVO_DADOS = os.path.join(os.path.dirname(__file__), "tarefas.json")
+
+@contextmanager
+def db():
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
-def carregar_dados():
-    global tarefas, proximo_id
-    if os.path.exists(ARQUIVO_DADOS):
-        with open(ARQUIVO_DADOS, "r", encoding="utf-8") as f:
-            dados = json.load(f)
-            tarefas = dados.get("tarefas", [])
-            proximo_id = dados.get("proximo_id", 1)
-    else:
-        tarefas = []
-        proximo_id = 1
+def init_db():
+    with db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS tarefas (
+                    id        SERIAL PRIMARY KEY,
+                    titulo    TEXT    NOT NULL,
+                    concluida BOOLEAN NOT NULL DEFAULT FALSE
+                )
+            """)
 
 
-def salvar_dados():
-    with open(ARQUIVO_DADOS, "w", encoding="utf-8") as f:
-        json.dump({"tarefas": tarefas, "proximo_id": proximo_id}, f, ensure_ascii=False, indent=2)
-
-
-carregar_dados()
+init_db()
 
 
 @app.route("/")
@@ -34,47 +43,52 @@ def index():
 
 @app.route("/tarefas", methods=["GET"])
 def listar_tarefas():
-    return jsonify(tarefas)
+    with db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, titulo, concluida FROM tarefas ORDER BY id")
+            return jsonify([dict(r) for r in cur.fetchall()])
 
 
 @app.route("/tarefas", methods=["POST"])
 def criar_tarefa():
-    global proximo_id
     dados = request.get_json()
     if not dados or not dados.get("titulo"):
         return jsonify({"erro": "O campo 'titulo' é obrigatório"}), 400
-    tarefa = {
-        "id": proximo_id,
-        "titulo": dados["titulo"],
-        "concluida": False,
-    }
-    tarefas.append(tarefa)
-    proximo_id += 1
-    salvar_dados()
-    return jsonify(tarefa), 201
+    with db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO tarefas (titulo) VALUES (%s) RETURNING id, titulo, concluida",
+                (dados["titulo"],),
+            )
+            return jsonify(dict(cur.fetchone())), 201
 
 
 @app.route("/tarefas/<int:tarefa_id>", methods=["PUT"])
 def atualizar_tarefa(tarefa_id):
-    tarefa = next((t for t in tarefas if t["id"] == tarefa_id), None)
-    if tarefa is None:
-        return jsonify({"erro": "Tarefa não encontrada"}), 404
     dados = request.get_json()
-    if "titulo" in dados:
-        tarefa["titulo"] = dados["titulo"]
-    if "concluida" in dados:
-        tarefa["concluida"] = dados["concluida"]
-    salvar_dados()
-    return jsonify(tarefa)
+    with db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT id, titulo, concluida FROM tarefas WHERE id = %s", (tarefa_id,))
+            tarefa = cur.fetchone()
+            if tarefa is None:
+                return jsonify({"erro": "Tarefa não encontrada"}), 404
+            tarefa = dict(tarefa)
+            novo_titulo = dados.get("titulo", tarefa["titulo"])
+            nova_concluida = dados.get("concluida", tarefa["concluida"])
+            cur.execute(
+                "UPDATE tarefas SET titulo = %s, concluida = %s WHERE id = %s RETURNING id, titulo, concluida",
+                (novo_titulo, nova_concluida, tarefa_id),
+            )
+            return jsonify(dict(cur.fetchone()))
 
 
 @app.route("/tarefas/<int:tarefa_id>", methods=["DELETE"])
 def deletar_tarefa(tarefa_id):
-    tarefa = next((t for t in tarefas if t["id"] == tarefa_id), None)
-    if tarefa is None:
-        return jsonify({"erro": "Tarefa não encontrada"}), 404
-    tarefas.remove(tarefa)
-    salvar_dados()
+    with db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM tarefas WHERE id = %s RETURNING id", (tarefa_id,))
+            if cur.fetchone() is None:
+                return jsonify({"erro": "Tarefa não encontrada"}), 404
     return "", 204
 
 
