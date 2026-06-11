@@ -2,7 +2,7 @@
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const { z } = require("zod");
 
-const BASE_URL = "https://treino-claude-code.vercel.app";
+const BASE_URL = process.env.TAREFAS_URL || "http://127.0.0.1:5000";
 
 const servidor = new McpServer({
   name: "mcp-tarefas",
