@@ -1,6 +1,9 @@
 import os
 from contextlib import contextmanager
 
+from dotenv import load_dotenv
+load_dotenv(".env.local")
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, jsonify, request, render_template

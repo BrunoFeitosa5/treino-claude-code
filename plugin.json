@@ -1,0 +1,35 @@
+
+{
+
+  "name": "tarefas-plugin",
+
+  "version": "1.0.0",
+
+  "description": "Plugin do projeto treino-claude-code — lista de tarefas com Flask",
+
+  "author": "Bruno",
+
+  "skills": [
+
+    ".claude/commands/status.md",
+
+    ".claude/commands/rodar.md",
+
+    ".claude/commands/deploy.md"
+
+  ],
+
+  "mcpServers": {
+
+    "mcp-tarefas": {
+
+      "command": "node",
+
+      "args": ["mcp-tarefas/index.js"]
+
+    }
+
+  }
+
+}
+
